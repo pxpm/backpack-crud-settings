@@ -1,0 +1,47 @@
+{
+    "name": "pxpm/backpack-crud-settings",
+    "type": "package",
+    "description": "Allow developers to add settings into CRUD",
+    "keywords": [
+        "pxpm",
+        "settings",
+        "laravel",
+        "backpack",
+        "admin"
+    ],
+    "homepage": "https://github.com/pxpm/backpack-crud-settings",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pedro X.",
+            "email": "pxpm88@gmail.com",
+            "homepage": "https://github.com/pxpm",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "backpack/crud": "^4.0"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Pxpm\\BpSettings\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pxpm\\BpSettings\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Pxpm\\BpSettings\\BpSettingsServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
