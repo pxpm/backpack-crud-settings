@@ -52,6 +52,7 @@ You can now access your setting panel in: `your_url.com/backpack_admin_prefix/bp
 
 ### Key points
 
+- Settings are regular crud fields. View backpack documentation on how to use them. 
 - `namespace` is like `tab` in crud fields.
 - `group` allows your to group settings inside a tab.
 
