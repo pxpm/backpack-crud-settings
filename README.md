@@ -55,7 +55,17 @@ You can now access your setting panel in: `your_url.com/backpack_admin_prefix/bp
 - Settings are regular crud fields. View backpack documentation on how to use them. 
 - `namespace` is like `tab` in crud fields.
 - `group` allows your to group settings inside a tab.
-
+- All settings are pushed into config array. You can grab them with `config('bpsettings.setting_name)` or `app('settingsmanager)->get('setting_name')`
+- You can use validation on your settings using regular laravel validation. Define the key `validation` on setting config. Eg:
+```php
+[
+                'name' => 'company_moto',
+                'type' => 'text',
+                'label' => 'Company Moto',
+                'namespace' => 'Main',
+                'validation' => 'required|min:5',
+            ],
+```
 
 # IMPORTANT NOTE:
 

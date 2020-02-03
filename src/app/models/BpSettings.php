@@ -30,14 +30,4 @@ class BpSettings extends Model
     {
         parent::boot();
     }
-
-    public function scopeNamespaced($query,$namespace)
-    {
-        return $query->where('namespace','LIKE','%'.$namespace.'.%');
-    }
-
-    public function scopeGroupBy($query,$group) {
-        return $query->where('group', 'LIKE', '%'.$group.'.%');
-    }
-
 }

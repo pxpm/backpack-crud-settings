@@ -21,6 +21,8 @@ class BpSettingsServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
 
+        $this->pushToConfig();
+
     }
 
     /**
@@ -36,6 +38,12 @@ class BpSettingsServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(SettingsManager::class, 'settingsmanager');
+    }
+
+    public function pushToConfig() {
+        foreach(app('settingsmanager')->settings as $setting) {
+            config()->set('bpsettings.'.$setting->name, $setting->value);
+        } 
     }
 
 }

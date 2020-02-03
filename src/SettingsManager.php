@@ -36,14 +36,16 @@ class SettingsManager
      }
 
     /**
-     * Returns the setting value. It should be: setting_name.namespace.group 
+     * Returns the setting value.
      *
      * @param string $setting 
      * @return void
      */
-    public function get($setting)
+    public function get($settingName)
     {
-        dd($setting);
+        if($this->settings->contains('name',$settingName)) {
+            return $this->settings->where('name',$settingName)->first()->value;
+        }
     }
 
     public function settingExists($setting) {
