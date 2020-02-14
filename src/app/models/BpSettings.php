@@ -17,7 +17,7 @@ class BpSettings extends Model
         'label',
         'value',
         'type',
-        'namespace',
+        'tab',
         'name',
         'options'
     ];

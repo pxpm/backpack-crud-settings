@@ -5,6 +5,7 @@ namespace Pxpm\BpSettings;
 use Pxpm\BpSettings\App\Models\BpSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Arr;
 
 class SettingsManager
 {
@@ -14,13 +15,24 @@ class SettingsManager
 
     public $prefix;
 
+    private $preSeederSettings = array();
+
+
     public function __construct()
     {
         $this->disk = 'uploads';
         $this->prefix = 'settings/';
         $this->settings = $this->getDatabaseSettings();
+        $this->preSeederSettings = $this->settings->pluck('name')->toArray();
+        $this->seededSettings = array();
     }
 
+    /**
+     * Check if settings are cached, if not cache them. 
+     * Returs the cached version if available or retrive the settings from DB.
+     *
+     * @return void
+     */
     public function getDatabaseSettings() {
         
         return Cache::rememberForever('bp-settings', function () {
@@ -28,11 +40,37 @@ class SettingsManager
         });
     }
 
+    /**
+     * Deletes unused settings from database. This uses the seeder as the only source of truth
+     *
+     * @return void
+     */
+    public function cleanUpDatabaseSettings() {
+        if(!empty($this->preSeederSettings) && !empty($this->seededSettings)) {
+            if(!empty($diff = array_diff($this->preSeederSettings,$this->seededSettings))) {
+                foreach ($diff as $settingToDelete) {
+                    if (in_array($settingToDelete, $this->preSeederSettings)) {
+                        BpSettings::where('name', $settingToDelete)->first()->delete();
+                    }
+                }
+            }
+        }
+        $this->rebuildSettingsCache();
+    }
+
+
+    /**
+     * Clears the setting cache and get fresh setting data from database.
+     *
+     * @return void
+     */
      public function rebuildSettingsCache() {
-         if (Cache::has('bp-settings')) {
-             Cache::forget('bp-settings');
-            $this->settings = $this->getDatabaseSettings();
-         }
+
+        if (Cache::has('bp-settings')) {
+            Cache::forget('bp-settings');
+        }
+         $this->settings = $this->getDatabaseSettings();
+         
      }
 
     /**
@@ -48,6 +86,10 @@ class SettingsManager
         }
     }
 
+    public function setDisk($disk) {
+        $this->disk = $disk;
+    }
+
     public function settingExists($setting) {
         return $this->settings->contains('name',$setting);
     }
@@ -57,7 +99,7 @@ class SettingsManager
         $setting['name'] ?? abort(500, 'Setting need a name.');
         $setting['label'] = $setting['label'] ?? $setting['name'];
 
-        $settingOptions = array_except($setting,['type','name','label','namespace','group','value','id']);
+        $settingOptions = array_except($setting,['type','name','label','tab','group','value','id']);
         
         if($this->settingExists($setting['name'])) {
             $dbSetting = BpSettings::where('name',$setting['name'])->first();
@@ -71,7 +113,7 @@ class SettingsManager
                 'name' => $setting['name'],
                 'type' => $setting['type'],
                 'label' => $setting['label'],
-                'namespace' => $setting['namespace'] ?? null,
+                'tab' => $setting['tab'] ?? null,
                 'group' => $setting['group'] ?? null,
 
             ]);
@@ -79,7 +121,7 @@ class SettingsManager
         
         $dbSetting->options = $settingOptions;
         $dbSetting->save();
-
+        $this->seededSettings[] = $dbSetting->name;
     }
 
     public function getFieldValidations() {
@@ -116,7 +158,6 @@ class SettingsManager
                
             }
             unset($setting->options);
-            $setting->tab = $setting->namespace ?? '';
         }
         return $this->settings->keyBy('name')->toArray();
     }

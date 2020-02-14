@@ -19,7 +19,7 @@ class CreateBpSettingsTable extends Migration
             $table->text('label')->nullable();
             $table->longtext('options')->nullable();
             $table->string('name')->unique();
-            $table->text('namespace')->nullable();
+            $table->text('tab')->nullable();
             $table->text('group')->nullable();
             $table->longText('value');
         });
