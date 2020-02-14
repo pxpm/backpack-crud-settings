@@ -98,8 +98,11 @@ class SettingsManager
         $setting['type'] ?? abort(500, 'Setting need a type.');
         $setting['name'] ?? abort(500, 'Setting need a name.');
         $setting['label'] = $setting['label'] ?? $setting['name'];
+        $setting['tab'] = $setting['tab'] ?? null;
+        $setting['group'] = $setting['group'] ?? null;
+        $setting['namespace'] = $setting['namespace'] ?? null;
 
-        $settingOptions = array_except($setting,['type','name','label','tab','group','value','id']);
+        $settingOptions = array_except($setting,['type','name','label','tab','group','value','id', 'namespace']);
         
         if($this->settingExists($setting['name'])) {
             $dbSetting = BpSettings::where('name',$setting['name'])->first();
@@ -114,6 +117,7 @@ class SettingsManager
                 'type' => $setting['type'],
                 'label' => $setting['label'],
                 'tab' => $setting['tab'] ?? null,
+                'namespace' => $setting['namespace'] ?? null,
                 'group' => $setting['group'] ?? null,
 
             ]);
@@ -124,10 +128,12 @@ class SettingsManager
         $this->seededSettings[] = $dbSetting->name;
     }
 
-    public function getFieldValidations() {
+    public function getFieldValidations($namespace = null) {
         $validations = array();
         foreach($this->settings as $setting) {
-            $validations[$setting['name']] = $setting['options']['validation'] ?? null;
+            if ($setting['namespace'] === $namespace) {
+                $validations[$setting['name']] = $setting['options']['validation'] ?? null;
+            }
         }
         return array_filter($validations);
     }
@@ -138,8 +144,11 @@ class SettingsManager
             $setting = $settingsInDb->where('name',$settingName)->first();
             if (!is_null($setting)) {
                 switch ($setting->type) {
-                case 'image':
+                case 'image': {
+                    $this->disk = $setting->disk ?? $this->disk;
+                    $this->prefix = $setting->prefix ?? $this->prefix;
                     $settingValue = $this->saveImageToDisk($settingValue, $settingName);
+                }
                 }
 
                 $setting->update(['value' => $settingValue]);
@@ -151,15 +160,16 @@ class SettingsManager
         return true;
     }
 
-    public function getFieldsForEditor() {
-        foreach($this->settings as &$setting) {
-            foreach($setting->options as $key => $option) {
-                $setting->{$key} = $option;
-               
+    public function getFieldsForEditor($namespace = null) {
+        foreach ($this->settings as &$setting) {
+            if ($setting->namespace === $namespace) {
+                foreach ($setting->options as $key => $option) {
+                    $setting->{$key} = $option;
+                }
+                unset($setting->options);
             }
-            unset($setting->options);
         }
-        return $this->settings->keyBy('name')->toArray();
+        return $this->settings->where('namespace',$namespace)->keyBy('name')->toArray();
     }
 
     public function update(array $setting) {

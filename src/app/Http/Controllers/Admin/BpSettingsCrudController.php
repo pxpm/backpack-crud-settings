@@ -15,6 +15,7 @@ class BpSettingsCrudController extends CrudController
         $this->crud->setModel('Pxpm\BpSettings\App\Models\BpSettings');
         $this->crud->setRoute(config('backpack.base.route_prefix').'/bp-settings');
         $this->crud->setEntityNameStrings('setting', 'settings');
+        $this->crud->denyAccess(['create','update','delete']);
     }
 
     public function setupListOperation() {
@@ -29,7 +30,9 @@ class BpSettingsCrudController extends CrudController
     public function save(Request $request) {
         $settings = $request->except(['http_referrer', '_token']);
 
-        $validationRules = app('settingsmanager')->getFieldValidations();
+        $namespace = last(request()->segments());
+
+        $validationRules = app('settingsmanager')->getFieldValidations($namespace);
         
         Validator::make($settings, $validationRules)->validate();
 
@@ -38,5 +41,22 @@ class BpSettingsCrudController extends CrudController
         }
 
         return response()->json('saving error');
+    }
+
+    public function namespacedSettingsEditor($namespace) {
+        $this->crud->hasAccessOrFail('list');
+        $fields = app('settingsmanager')->getFieldsForEditor($namespace);
+        if(count($fields) < 1) {
+            abort(500, 'Inexistent namespace.');
+        }
+        foreach($fields as $field) {
+            $this->crud->addField($field);
+        }
+        
+        $this->data['crud'] = $this->crud;
+        $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
+
+        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
+        return view('bpsettings::settings_editor', $this->data);
     }
 }
