@@ -2,8 +2,10 @@
 
 namespace Pxpm\BpSettings;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Pxpm\BpSettings\SettingsManager;
+use Illuminate\Support\Facades\Schema;
 
 class BpSettingsServiceProvider extends ServiceProvider
 {
@@ -21,7 +23,9 @@ class BpSettingsServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
 
-        $this->pushToConfig();
+        if (Schema::connection(DB::getDefaultConnection())->hasTable('bp_settings')) {
+            $this->pushToConfig();
+        }
 
     }
 
