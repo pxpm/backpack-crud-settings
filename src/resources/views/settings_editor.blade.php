@@ -13,7 +13,7 @@
 <div class="row">
 	<div class="col-lg-12">
 		<!-- Default box -->
-
+@if(count($crud->fields()) > 0)
 		@include('crud::inc.grouped_errors')
 
 		  <form method="post"
@@ -30,6 +30,9 @@
 		
 		  </form>
 		  <button type="button" class="btn btn-primary" id="saveButton">{{trans('backpack::crud.save')}}</button>
+		  @else
+		  <h3>No settigns in database. Follow the documentation on how to create them.</h3>
+		  @endif
 	</div>
 </div>
 
