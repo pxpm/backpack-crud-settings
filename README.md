@@ -6,25 +6,29 @@
 
 ![bp_settings_graphics](https://user-images.githubusercontent.com/7188159/74541812-38ed6180-4f3a-11ea-9646-4dc79e2c8cc8.PNG)
 
-### How to:
+### Instalation:
 
 `composer require pxpm/backpack-crud-settings`
 
-Migrate the settings table:
+- Migrate the settings table:
 `php artisan db:migrate`
 
+ Publish the config file
+ `php artisan vendor:publish --provider="Pxpm\BpSettings\BpSettingsServiceProvider" --tag=config`
 
 Create a seeder that will seed your settings into database:
 
+`php artisan make:seeder SettingsSeeder`
+
 ### Important note
-> THIS WILL BE YOUR ONLY SOURCE OF TRUTH FOR YOUR DATABASE SETTINGS ANYTIME YOU NEED TO EDIT/REMOVE/ADD SETTINGS IT'S DONE IN THIS SEEDER, AFTER YOU ARE HAPPY WITH THE CHANGES RUN THE SEEDER AGAIN.
+> This seeder will be the only source of truth for your settings. This is the way you can add/delete/update settings from database.
 
 ```php
 <?php
 
 use Illuminate\Database\Seeder;
 
-class DatabaseSeeder extends Seeder
+class SettingsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -64,15 +68,6 @@ class DatabaseSeeder extends Seeder
                 'wrapperAttributes' => ['class' => 'col-md-6 form-group']
                 
             ],
-            [
-                'name' => 'black_white_logo',
-                'type' => 'image',
-                'label' => 'Black White Logo',
-                'tab' => 'Graphics',
-                'prefix' => 'uploads/',
-                'wrapperAttributes' => ['class' => 'col-md-6 form-group']
-                
-            ],
            [
                'name' => 'require_email_verification',
                'type' => 'checkbox',
@@ -97,44 +92,34 @@ class DatabaseSeeder extends Seeder
             'namespace' => 'users',
             'wrapperAttributes' => ['class' => 'col-md-4 form-group']
         ],
-        [
-            'name' => 'default_role',
-            'type' => 'select2',
-            'label' => 'Default User Role',
-            'group' => 'Default Settings',
-            'namespace' => 'users',
-            'model' => 'App\Models\BackpackUser',
-            'entity' => 'roles',
-            'attribute' => 'name',
-            'wrapperAttributes' => ['class' => 'col-md-4 form-group']
-            
-        ]    
         ];
 
-        foreach($settings as $setting) {
-            app('settingsmanager')->create($setting);
-        }
-
-        // allwways call this at the end of the seeder. It will remove any unused settings, eg: you changed a setting name, or you
-        // just remove some setting from this array.
-        app('settingsmanager')->cleanUpDatabaseSettings();
+        app('settingsmanager')->create($settings);
     }
 ```
+
+##### IMPORTANT: 
+- After creating your seeder you should `composer dump-autoload` 
+
+- Seed the settings with: `php artisan db:seed --class=SettingsSeeder`
+
 
 You can now access your setting panel in: `your_url.com/backpack_admin_prefix/bp-settings`
 
 ### Key points
 
-- Settings are regular crud fields. View backpack documentation on how to use them. 
-- `namespace` is used to create different setting panels, for example, creating a setting panel for your articles. Those settings will be available in `your_url.com/backpack_admin_prefix/bp-settings/here_the_namespace`
+- Settings are regular crud fields. See [the documentation](https://backpackforlaravel.com/docs/4.1/crud-fields) on backpack website.
+
+- NOT ALL FIELDS AVAILABLE. Majority is. (Relationship field does not work for example.)
+
+- `namespace` is used to create different setting panels, for example, creating a setting panel for your articles. Those settings will be available in `your_url.com/backpack_admin_prefix/bp-settings/articles`
 
 - `group` allows your to group settings inside a setting panel.
 
-- All settings are pushed into config array. You can grab them with `config('bpsettings.setting_name)` or `app('settingsmanager)->get('setting_name')`
-
-- In image fields you can overwrite disk and prefix using keys `disk` and `prefix` correspondently.
+- All settings are pushed into config array on run-time. You can use them with `config('admin_settings.setting_name)` or `app('settingsmanager)->get('setting_name')`
 
 - You can use validation on your settings using regular laravel validation. Define the key `validation` on setting config. Eg:
+
 ```php
 [
                 'name' => 'company_moto',

@@ -13,7 +13,7 @@ class BpSettingsCrudController extends CrudController
 
     public function setup() {
         $this->crud->setModel('Pxpm\BpSettings\App\Models\BpSettings');
-        $this->crud->setRoute(config('backpack.base.route_prefix').'/bp-settings');
+        $this->crud->setRoute(config('backpack.base.route_prefix').'/'.config('pxpm::bpsettings.setting_route_prefix'));
         $this->crud->setEntityNameStrings('setting', 'settings');
         $this->crud->denyAccess(['create','update','delete']);
     }
@@ -56,7 +56,6 @@ class BpSettingsCrudController extends CrudController
         $this->data['crud'] = $this->crud;
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
 
-        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
         return view('bpsettings::settings_editor', $this->data);
     }
 }

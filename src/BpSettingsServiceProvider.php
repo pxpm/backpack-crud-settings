@@ -23,9 +23,9 @@ class BpSettingsServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
 
-        if (Schema::connection(DB::getDefaultConnection())->hasTable('bp_settings')) {
-            $this->pushToConfig();
-        }
+        $this->mergeConfigFrom(__DIR__.'/config/config.php', 'bpsettings');
+
+        $this->pushToConfig();
 
     }
 
@@ -36,6 +36,9 @@ class BpSettingsServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->publishes([
+            __DIR__.'/config/config.php' => config_path('bpsettings.php')
+        ], 'config');
 
         $this->app->singleton(SettingsManager::class, function () {
             return new SettingsManager();
@@ -45,8 +48,9 @@ class BpSettingsServiceProvider extends ServiceProvider
     }
 
     public function pushToConfig() {
+        $setting_prefix = config('bpsettings.settings_prefix');
         foreach(app('settingsmanager')->settings as $setting) {
-            config()->set('bpsettings.'.$setting->name, $setting->value);
+            config()->set(($setting_prefix ?? '').($setting_prefix ? '.' : '').$setting->name, $setting->value);
         } 
     }
 

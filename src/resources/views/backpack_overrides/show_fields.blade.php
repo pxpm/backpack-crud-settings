@@ -15,8 +15,6 @@ if(!empty($fields)) {
     }
     $groupedFields = $result;   
 }
-    //$fields = $fields->groupBy('group');
-    //dd($fields);
 @endphp
 
 @foreach ($groupedFields as $fieldGroup => $fields)
@@ -27,7 +25,6 @@ if(!empty($fields)) {
         @endif
         
         <div class="card-body text-dark" style="display: flex;">
-         
           @foreach($fields as $field)
     @php
         $fieldsViewNamespace = $field['view_namespace'] ?? 'crud::fields';
@@ -35,6 +32,7 @@ if(!empty($fields)) {
 
     @include($fieldsViewNamespace.'.'.$field['type'], ['field' => $field])
     @endforeach
+   
         </div>
       </div>
     

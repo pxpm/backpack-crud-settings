@@ -6,25 +6,21 @@ use Pxpm\BpSettings\App\Models\BpSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SettingsManager
 {
     public $settings;
 
-    public $disk;
-
-    public $prefix;
-
-    private $preSeederSettings = array();
+    private $preLoadedSettings = array();
 
 
     public function __construct()
     {
-        $this->disk = 'uploads';
-        $this->prefix = 'settings/';
         $this->settings = $this->getDatabaseSettings();
-        $this->preSeederSettings = $this->settings->pluck('name')->toArray();
-        $this->seededSettings = array();
+        $this->preLoadedSettings = $this->settings ? $this->settings->pluck('name')->toArray() : [];
     }
 
     /**
@@ -36,7 +32,12 @@ class SettingsManager
     public function getDatabaseSettings() {
         
         return Cache::rememberForever('bp-settings', function () {
-            return BpSettings::all();
+            if (Schema::connection(DB::getDefaultConnection())->hasTable('bp_settings')) {
+                return BpSettings::all();
+            }else{
+                return collect();
+            }
+            
         });
     }
 
@@ -45,11 +46,11 @@ class SettingsManager
      *
      * @return void
      */
-    public function cleanUpDatabaseSettings() {
-        if(!empty($this->preSeederSettings) && !empty($this->seededSettings)) {
-            if(!empty($diff = array_diff($this->preSeederSettings,$this->seededSettings))) {
+    public function cleanUpDatabaseSettings($seededSettings) {
+        if(!empty($this->preLoadedSettings) && !empty($seededSettings)) {
+            if(!empty($diff = array_diff($this->preLoadedSettings,$seededSettings))) {
                 foreach ($diff as $settingToDelete) {
-                    if (in_array($settingToDelete, $this->preSeederSettings)) {
+                    if (in_array($settingToDelete, $this->preLoadedSettings)) {
                         BpSettings::where('name', $settingToDelete)->first()->delete();
                     }
                 }
@@ -94,25 +95,27 @@ class SettingsManager
         return $this->settings->contains('name',$setting);
     }
 
-    public function create(array $setting) {
-        $setting['type'] ?? abort(500, 'Setting need a type.');
-        $setting['name'] ?? abort(500, 'Setting need a name.');
-        $setting['label'] = $setting['label'] ?? $setting['name'];
-        $setting['tab'] = $setting['tab'] ?? null;
-        $setting['group'] = $setting['group'] ?? null;
-        $setting['namespace'] = $setting['namespace'] ?? null;
+    public function create($settings) {
+        foreach ($settings as $setting) {
+            $dbSetting = null;
+            $setting['type'] ?? abort(500, 'Setting need a type.');
+            $setting['name'] ?? abort(500, 'Setting need a name.');
+            $setting['label'] = $setting['label'] ?? $setting['name'];
+            $setting['tab'] = $setting['tab'] ?? null;
+            $setting['group'] = $setting['group'] ?? null;
+            $setting['namespace'] = $setting['namespace'] ?? null;
 
-        $settingOptions = array_except($setting,['type','name','label','tab','group','value','id', 'namespace']);
-        
-        if($this->settingExists($setting['name'])) {
-            $dbSetting = BpSettings::where('name',$setting['name'])->first();
-
-            $dbSetting->update(array_except($setting,array_keys($settingOptions)));
+            $settingOptions = Arr::except($setting, ['type','name','label','tab','group','value','id', 'namespace']);
             
-        }
-        
-        if(!isset($dbSetting)) {
-            $dbSetting = BpSettings::create([
+            if ($this->settingExists($setting['name'])) {
+               
+                $dbSetting = BpSettings::where('name', $setting['name'])->first();
+
+                $dbSetting->update(Arr::except($setting, array_keys($settingOptions)));
+            }
+            
+            if (!isset($dbSetting) && is_null($dbSetting)) {
+                $dbSetting = BpSettings::create([
                 'name' => $setting['name'],
                 'type' => $setting['type'],
                 'label' => $setting['label'],
@@ -121,14 +124,16 @@ class SettingsManager
                 'group' => $setting['group'] ?? null,
 
             ]);
-        } 
+            }
         
-        $dbSetting->options = $settingOptions;
-        $dbSetting->save();
-        $this->seededSettings[] = $dbSetting->name;
+            $dbSetting->options = $settingOptions;
+            $dbSetting->save();
+
+        }
+        $this->cleanUpDatabaseSettings(Arr::pluck($settings, 'name'));
     }
 
-    public function getFieldValidations($namespace = null) {
+    public function getFieldValidations($namespace) {
         $validations = array();
         foreach($this->settings as $setting) {
             if ($setting['namespace'] === $namespace) {
@@ -145,8 +150,6 @@ class SettingsManager
             if (!is_null($setting)) {
                 switch ($setting->type) {
                 case 'image': {
-                    $this->disk = $setting->disk ?? $this->disk;
-                    $this->prefix = $setting->prefix ?? $this->prefix;
                     $settingValue = $this->saveImageToDisk($settingValue, $settingName);
                 }
                 }
@@ -178,13 +181,16 @@ class SettingsManager
 
     public function saveImageToDisk($image,$settingName)
     {
+        $disk = config('bpsettings.image_save_disk');
+        $prefix = config('bpsettings.image_save_disk');
+
         $setting = BpSettings::where('name',$settingName)->first();
 
         if ($image === null) {
             // delete the image from disk
-            if(Storage::disk($this->disk)->has($setting->value))
+            if(Storage::disk($disk)->has($setting->value))
             {
-                Storage::disk($this->disk)->delete($setting->value);
+                Storage::disk($disk)->delete($setting->value);
             }
 
             // set null in the database column
@@ -192,7 +198,7 @@ class SettingsManager
         }
 
         // if a base64 was sent, store it in the db
-        if (starts_with($image, 'data:image'))
+        if (Str::startsWith($image, 'data:image'))
         {
             // 0. Make the image
             $imageCreated = \Image::make($image);
@@ -200,15 +206,15 @@ class SettingsManager
             // 1. Generate a filename.
             $filename = md5($image.time()).'.jpg';
             // 2. Store the image on disk.
-            if(Storage::disk($this->disk)->has($setting->value))
+            if(Storage::disk($disk)->has($setting->value))
             {
-                Storage::disk($this->disk)->delete($setting->value);
+                Storage::disk($disk)->delete($setting->value);
             }
 
-            Storage::disk($this->disk)->put($this->prefix.$filename, $imageCreated->stream());
+            Storage::disk($disk)->put($prefix.$filename, $imageCreated->stream());
             // 3. Save the path to the database
 
-            return $this->prefix.$filename;
+            return $prefix.$filename;
         }
 
         return $setting->value;
