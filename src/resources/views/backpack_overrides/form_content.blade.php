@@ -1,4 +1,4 @@
-<input type="hidden" name="http_referrer" value={{ old('http_referrer') ?? \URL::previous() ?? url($crud->route) }}>
+<input type="hidden" name="http_referrer" value={{ session('referrer_url_override') ?? old('http_referrer') ?? \URL::previous() ?? url($crud->route) }}>
 {{-- See if we're using tabs --}}
 @if ($crud->tabsEnabled() && count($crud->getTabs()))
     @include('bpsettings::backpack_overrides.show_tabbed_fields')
@@ -52,26 +52,34 @@
         
         //this is needed otherwise fields like ckeditor don't post their value.
         $($form).trigger('form-pre-serialize');
-       
+        
+        //clear any previous failed validation if any
+        $($form).find('.is-invalid').each(function(idx,el) {
+          $(el).closest('.text-danger').removeClass('text-danger');
+          $(el).removeClass('is-invalid');
+        });
+
+        $($form).find('.invalid-feedback').remove();
+
+        $('#form_tabs').find('.text-danger').removeClass('text-danger');
 
         var $formData = new FormData($form);
-        var loadingText = '<i class="fa fa-circle-o-notch fa-spin"></i> saving...';
+        var loadingText = '<i class="la la-spinner la-spin"></i> {{ trans('bpsettings::bpsettings.saving') }}';
         if ($submitButton.html() !== loadingText) {
           $submitButton.data('original-text', $(this).html());
           $submitButton.html(loadingText);
           $submitButton.prop('disabled', true);
         }
         $.ajax({
-            url: "{{route('bp-settings-save')}}",
+            url: "{{ url(config('backpack.base.route_prefix').'/'.config('bpsettings.settings_route_prefix').'/save') }}",
             data: $formData,
             processData: false,
             contentType: false,
             type: 'POST',
             success: function (result) {
-              console.log(result)
                 swal({
-                    title: "Settings Saved",
-                    text: "Settings saved into database with success.",
+                    title: "{{ trans('bpsettings::bpsettings.settings_saved') }}",
+                    text: "{{ trans('bpsettings::bpsettings.settings_saved_to_database') }}",
                     icon: "success",
                     timer: 3000,
                     buttons: false,
@@ -83,11 +91,39 @@
                 // Show an alert with the result
                 var $errors = result.responseJSON.errors;
                 let message = '';
-                for (var i in $errors) {
-                    message += $errors[i] + ' \n';
+                
+                for (var key in $errors) {
+                  var normalizedProperty = key.split('.').map(function(item, index){
+                    return index === 0 ? item : '['+item+']';
+                  }).join('');
+
+                  var field = $('[name="' + normalizedProperty + '[]"]').length ?
+                        $('[name="' + normalizedProperty + '[]"]') :
+                        $('[name="' + normalizedProperty + '"]');
+                  var container = field.parents('.form-group');
+                  
+                  container.addClass('text-danger');
+                  container.children('input, textarea').addClass('is-invalid');
+                  
+                  $.each($errors[key], function(index, msg){
+                      // highlight the input that errored
+                      var row = $('<div class="invalid-feedback">' + msg + '</div>');
+                      row.appendTo(container);
+
+                      message += msg + ' \n';  
+                  });
+
+                  if (message.length <= 1) {
+                    message = "{{ trans('bpsettings::bpsettings.unknown_error') }}";
+                  }
+
+                  // highlight its parent tab
+                  var tab_id = $(container).closest('[role="tabpanel"]').attr('id');
+                  $("#form_tabs [aria-controls="+tab_id+"]").addClass('text-danger');                           
                 }
+
                 swal({
-                    title: "Error saving settings.",
+                    title: "{{ trans('bpsettings::bpsettings.error_saving_settings') }}",
                     text: message,
                     icon: "error",
                     timer: 4000,
@@ -126,40 +162,7 @@
         }
       @endif
 
-      // Add inline errors to the DOM
-      @if ($crud->inlineErrorsEnabled() && $errors->any())
-
-        window.errors = {!! json_encode($errors->messages()) !!};
-        // console.error(window.errors);
-
-        $.each(errors, function(property, messages){
-
-            var normalizedProperty = property.split('.').map(function(item, index){
-                    return index === 0 ? item : '['+item+']';
-                }).join('');
-
-            var field = $('[name="' + normalizedProperty + '[]"]').length ?
-                        $('[name="' + normalizedProperty + '[]"]') :
-                        $('[name="' + normalizedProperty + '"]'),
-                        container = field.parents('.form-group');
-
-            container.addClass('text-danger');
-            container.children('input, textarea').addClass('is-invalid');
-
-            $.each(messages, function(key, msg){
-                // highlight the input that errored
-                var row = $('<div class="invalid-feedback">' + msg + '</div>');
-                row.appendTo(container);
-
-                // highlight its parent tab
-                @if ($crud->tabsEnabled())
-                var tab_id = $(container).parent().attr('id');
-                $("#form_tabs [aria-controls="+tab_id+"]").addClass('text-red');
-                @endif
-            });
-        });
-
-      @endif
+     
 
       $("a[data-toggle='tab']").click(function(){
           currentTabName = $(this).attr('tab_name');

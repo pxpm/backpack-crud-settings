@@ -1,13 +1,5 @@
 @extends(backpack_view('layouts.top_left'))
 
-@php
-  $breadcrumbs = [
-    trans('backpack::crud.admin') => url(config('backpack.base.route_prefix'), 'dashboard'),
-    $crud->entity_name_plural => url($crud->route),
-  ];
-
-@endphp
-
 @section('content')
 
 <div class="row">
@@ -29,9 +21,9 @@
 		      	@include('bpsettings::backpack_overrides.form_content', [ 'fields' => $crud->fields()])
 		
 		  </form>
-		  <button type="button" class="btn btn-primary" id="saveButton">{{trans('backpack::crud.save')}}</button>
+		  <button type="button" class="btn btn-primary" id="saveButton">{{trans('bpsettings::bpsettings.save_button_text')}}</button>
 		  @else
-		  <h3>No settigns in database. Follow the documentation on how to create them.</h3>
+		<h3>{{ trans('bpsettings::bpsettings.no_settings_in_database')}}</h3>
 		  @endif
 	</div>
 </div>
