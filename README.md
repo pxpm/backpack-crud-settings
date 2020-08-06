@@ -1,10 +1,8 @@
-# backpack-crud-settings
+# Backpack Settings
 
 #### Create settings dashboards to your Backpack application.
 
 ![bp_settings_main](https://user-images.githubusercontent.com/7188159/74541740-19563900-4f3a-11ea-8819-00f3687be636.PNG)
-
-![bp_settings_graphics](https://user-images.githubusercontent.com/7188159/74541812-38ed6180-4f3a-11ea-9646-4dc79e2c8cc8.PNG)
 
 ### Instalation:
 
@@ -20,8 +18,10 @@ Create a seeder that will seed your settings into database:
 
 `php artisan make:seeder SettingsSeeder`
 
-### Important note
+##### IMPORTANT NOTE
 > This seeder will be the only source of truth for your settings. This is the way you can add/delete/update settings from database.
+
+The above command will generate something like this in your `Database\Seeds\` folder by default in Laravel application.
 
 ```php
 <?php
@@ -30,13 +30,9 @@ use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
     public function run()
     {
+        //create your array of settings like defining Backpack fields.
         $settings = [
              [
                 'name' => 'company_name',
@@ -44,91 +40,52 @@ class SettingsSeeder extends Seeder
                 'label' => 'Company Name',
                 'tab' => 'Main',
                 'wrapperAttributes' => ['class' => 'col-md-6 form-group']
-            ],
-            [
-                'name' => 'company_moto',
-                'type' => 'text',
-                'label' => 'Company Moto',
-                'tab' => 'Main',
-                'wrapperAttributes' => ['class' => 'col-md-6 form-group']
-            ],
-            [
-                'name' => 'default_keywords',
-                'type' => 'text',
-                'label' => 'Default Keywords',
-                'tab' => 'Main',
-                'group' => 'CEO'
-            ],
-            [
-                'name' => 'main_logo',
-                'type' => 'image',
-                'label' => 'Main Logo',
-                'tab' => 'Graphics',
-                'prefix' => 'uploads/',
-                'wrapperAttributes' => ['class' => 'col-md-6 form-group']
-                
-            ],
-           [
-               'name' => 'require_email_verification',
-               'type' => 'checkbox',
-               'label' => 'Require email verification',
-               'tab' => 'Panel Settings'
-           ],
-           [
-            'name' => 'default_avatar',
-            'type' => 'image',
-            'label' => 'Avatar',
-            'group' => 'Default Settings',
-            'namespace' => 'users',
-            'prefix' => 'uploads/',
-            'wrapperAttributes' => ['class' => 'col-md-4 form-group']
-            
-        ],
-        [
-            'name' => 'require_email_verification',
-            'type' => 'checkbox',
-            'label' => 'Require email verification',
-            'group' => 'Default Settings',
-            'namespace' => 'users',
-            'wrapperAttributes' => ['class' => 'col-md-4 form-group']
-        ],
+            ]
         ];
-
+        
+        //call the setting manager to manage those settings. It will take care of create/update/delete settings.
         app('settingsmanager')->create($settings);
     }
 ```
 
-##### IMPORTANT: 
+##### NOTES: 
 - After creating your seeder you should `composer dump-autoload` 
 
 - Seed the settings with: `php artisan db:seed --class=SettingsSeeder`
 
+### Configuration
 
-You can now access your setting panel in: `your_url.com/backpack_admin_prefix/bp-settings`
+If you follow all the instalation steps you should now have an `bpsettings.php` file in your `config/` directory. The default config is ready to work out-of-box, but you are free to customize it the way you want.
 
-### Key points
+### Creating settings
 
-- Settings are regular crud fields. See [the documentation](https://backpackforlaravel.com/docs/4.1/crud-fields) on backpack website.
+> You can now access your settings panel in: `your_url.com/backpack_admin_prefix/bp-settings`
 
-- NOT ALL FIELDS AVAILABLE. Majority is. (Relationship field does not work for example.)
+To add settings to your panels like described above you should create an array of `Backpack fields` and pass them to the `Settings Manager`. 
+There are some key points in setting definition that you can use to better organize your setting panels.
 
-- `namespace` is used to create different setting panels, for example, creating a setting panel for your articles. Those settings will be available in `your_url.com/backpack_admin_prefix/bp-settings/articles`
+##### namespace
+By default the settings namespace is `null`, that means it's a general setting and will appear in the main settings panel. By defining settings namespaces you can create aditional setting panels. 
 
-- `group` allows your to group settings inside a setting panel.
+If you setup some settings with `namespace => 'users'` those settings will be available separately in: `your_url.com/backpack_admin_prefix/bp-settings/users`
 
-- All settings are pushed into config array on run-time. You can use them with `config('admin_settings.setting_name)` or `app('settingsmanager)->get('setting_name')`
+##### group
+Allow you to group settings further inside the panel. You can use `tab` provided in Backpack with conjunction with group.
 
-- You can use validation on your settings using regular laravel validation. Define the key `validation` on setting config. Eg:
+##### validation
 
-```php
-[
-                'name' => 'company_moto',
-                'type' => 'text',
-                'label' => 'Company Moto',
-                'tab' => 'Main Info',
-                'validation' => 'required|min:5',
-            ],
-```
+You can validate your settings inputs using regular laravel validation. 
+
+Define the key `validation => 'required|min:5'` and we will run your setting input against the laravel validator and return any errors found. 
+
+
+### Using settings
+
+- All settings are pushed into config array on run-time. We use cache mechanism to make sure we don't query the database if there are no changes to settings and just grab the cached version.
+
+You can get the values of `non namespaced` settings with: `config('bpsettings.setting_name)` or `app('settingsmanager)->get('setting_name')`
+To get namespaced setting value you can do it with: `config('bpsettings.namespace.setting_name)` or `app('settingsmanager)->get('namespace.setting_name')`
+
 
 # IMPORTANT NOTE:
 
