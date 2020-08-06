@@ -34,9 +34,9 @@ class SettingsManager
         return Cache::rememberForever('bp-settings', function () {
             if (Schema::connection(DB::getDefaultConnection())->hasTable('bp_settings')) {
                 return BpSettings::all();
-            }else{
-                return collect();
             }
+
+            return collect();
             
         });
     }
@@ -78,21 +78,22 @@ class SettingsManager
      * Returns the setting value.
      *
      * @param string $setting 
-     * @return void
+     * @param mixed $namespace
+     * @return mixed
      */
-    public function get($settingName)
+    public function get($setting, $namespace = null)
     {
-        if($this->settings->contains('name',$settingName)) {
-            return $this->settings->where('name',$settingName)->first()->value;
+        if($this->settingExists($setting, $namespace)) {
+            return $this->settings->where('name',$setting)->where('namespace', $namespace)->first()->value;
         }
     }
 
-    public function setDisk($disk) {
-        $this->disk = $disk;
-    }
-
-    public function settingExists($setting) {
-        return $this->settings->contains('name',$setting);
+    public function settingExists($setting, $namespace = null) {
+        $name = is_string($setting) ? $setting : (is_array($setting) ? $setting['name'] : abort(500, 'Could not parse setting.'));
+        $namespace = $setting['namespace'] ?? $namespace;
+        return $this->settings->contains(function($setting_in_collection) use ($name, $namespace) {
+                return $setting_in_collection['name'] == $name && $setting_in_collection['namespace'] == $namespace;
+            });
     }
 
     public function create($settings) {
@@ -107,7 +108,7 @@ class SettingsManager
 
             $settingOptions = Arr::except($setting, ['type','name','label','tab','group','value','id', 'namespace']);
             
-            if ($this->settingExists($setting['name'])) {
+            if ($this->settingExists($setting)) {
                
                 $dbSetting = BpSettings::where('name', $setting['name'])->first();
 
@@ -133,18 +134,16 @@ class SettingsManager
         $this->cleanUpDatabaseSettings(Arr::pluck($settings, 'name'));
     }
 
-    public function getFieldValidations($namespace) {
+    public function getFieldValidations($settings, $namespace = null) {
         $validations = array();
-        foreach($this->settings as $setting) {
-            if ($setting['namespace'] === $namespace) {
+        foreach($this->settings->whereIn('name',array_keys($settings))->where('namespace', $namespace) as $setting) {
                 $validations[$setting['name']] = $setting['options']['validation'] ?? null;
-            }
         }
         return array_filter($validations);
     }
 
-    public function saveSettingsValues($settings) {
-        $settingsInDb = BpSettings::whereIn('name', array_keys($settings))->get();
+    public function saveSettingsValues($settings, $namespace = null) {
+        $settingsInDb = BpSettings::whereIn('name', array_keys($settings))->where('namespace', $namespace)->get();
         foreach($settings as $settingName => $settingValue) {
             $setting = $settingsInDb->where('name',$settingName)->first();
             if (!is_null($setting)) {
@@ -166,6 +165,9 @@ class SettingsManager
     public function getFieldsForEditor($namespace = null) {
         foreach ($this->settings as &$setting) {
             if ($setting->namespace === $namespace) {
+                if(is_string($setting->access) && is_callable($setting->access)) {
+                    //$hasAccess = $setting->access(request(), $setting);
+                }
                 foreach ($setting->options as $key => $option) {
                     $setting->{$key} = $option;
                 }
@@ -176,7 +178,7 @@ class SettingsManager
     }
 
     public function update(array $setting) {
-        return BpSettings::where('name',$setting['name'])->update(array_except($setting, ['name']));
+        return BpSettings::where('name',$setting['name'])->update(Arr::except($setting, ['name']));
     }
 
     public function saveImageToDisk($image,$settingName)

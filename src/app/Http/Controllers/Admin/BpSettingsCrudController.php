@@ -2,53 +2,22 @@
 
 namespace Pxpm\BpSettings\App\Http\Controllers\Admin;
 
-// VALIDATION: change the requests to match your own file names if you need form validation
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class BpSettingsCrudController extends CrudController
 {
-    use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
 
     public function setup() {
         $this->crud->setModel('Pxpm\BpSettings\App\Models\BpSettings');
-        $this->crud->setRoute(config('backpack.base.route_prefix').'/'.config('pxpm::bpsettings.setting_route_prefix'));
-        $this->crud->setEntityNameStrings('setting', 'settings');
-        $this->crud->denyAccess(['create','update','delete']);
+        $this->crud->setEntityNameStrings(trans('bpsettings::bpsettings.setting'), trans('bpsettings::bpsettings.settings'));
     }
 
-    public function setupListOperation() {
-        $this->crud->setListView('bpsettings::settings_editor');
-        $fields = app('settingsmanager')->getFieldsForEditor();
-        foreach($fields as $field) {
-            $this->crud->addField($field);
-        }  
-        
-    }
-
-    public function save(Request $request) {
-        $settings = $request->except(['http_referrer', '_token']);
-
-        $namespace = last(request()->segments());
-
-        $validationRules = app('settingsmanager')->getFieldValidations($namespace);
-        
-        Validator::make($settings, $validationRules)->validate();
-
-        if(app('settingsmanager')->saveSettingsValues($settings)) {
-            return response()->json('success');
-        }
-
-        return response()->json('saving error');
-    }
-
-    public function namespacedSettingsEditor($namespace) {
-        $this->crud->hasAccessOrFail('list');
+    public function index($namespace = null) {
+       
         $fields = app('settingsmanager')->getFieldsForEditor($namespace);
-        if(count($fields) < 1) {
-            abort(500, 'Inexistent namespace.');
-        }
+
         foreach($fields as $field) {
             $this->crud->addField($field);
         }
@@ -57,5 +26,23 @@ class BpSettingsCrudController extends CrudController
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
 
         return view('bpsettings::settings_editor', $this->data);
+        
     }
+
+    public function save(Request $request) {
+        $settings = $request->except(['http_referrer', '_token']);
+        
+        $namespace = last(request()->segments()) === 'save' ? null : last(request()->segments());
+
+        $validationRules = app('settingsmanager')->getFieldValidations($settings);
+        
+        Validator::make($settings, $validationRules)->validate();
+
+        if(app('settingsmanager')->saveSettingsValues($settings, $namespace)) {
+            return response()->json('success');
+        }
+
+        return response()->json('saving error');
+    }
+
 }
