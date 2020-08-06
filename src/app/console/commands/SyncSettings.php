@@ -28,7 +28,10 @@ class SyncSettings extends Command
     public function handle()
     {
         $seederClass = str_replace("\\","\\\\",config('bpsettings.settings_seeder'));
-        \Illuminate\Support\Facades\Artisan::call('db:seed --class="'.$seederClass.'"');
-        return true;
+        if(class_exists($seederClass)) {
+            return \Illuminate\Support\Facades\Artisan::call('db:seed --class="'.$seederClass.'"');
+        }
+        
+        return $this->warn('Seeder class: ' . $seederClass . ' not found');
     }
 }
