@@ -1,6 +1,6 @@
 <?php
 
-namespace Pxpm\BpSettings\App\Http\Controllers\Admin;
+namespace Pxpm\BpSettings\app\Http\Controllers\Admin;
 
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Illuminate\Http\Request;
