@@ -1,6 +1,6 @@
 <?php
 
-namespace Pxpm\BpSettings\App\Http\Controllers\Admin;
+namespace Pxpm\BpSettings\app\Http\Controllers\Admin;
 
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Illuminate\Http\Request;
@@ -10,7 +10,7 @@ class BpSettingsCrudController extends CrudController
 {
 
     public function setup() {
-        $this->crud->setModel('Pxpm\BpSettings\App\Models\BpSettings');
+        $this->crud->setModel('Pxpm\BpSettings\app\models\BpSettings');
         $this->crud->setEntityNameStrings(trans('bpsettings::bpsettings.setting'), trans('bpsettings::bpsettings.settings'));
     }
 

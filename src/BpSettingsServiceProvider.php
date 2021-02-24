@@ -8,7 +8,7 @@ use Pxpm\BpSettings\SettingsManager;
 class BpSettingsServiceProvider extends ServiceProvider
 {
     protected $commands = [
-        \Pxpm\BpSettings\App\Console\Commands\SyncSettings::class,
+        \Pxpm\BpSettings\app\console\commands\SyncSettings::class,
     ];
 
     // Indicates if loading of the provider is deferred.

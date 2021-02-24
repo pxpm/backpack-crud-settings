@@ -1,6 +1,6 @@
 <?php
 
-namespace Pxpm\BpSettings\app\Console\Commands;
+namespace Pxpm\BpSettings\app\console\commands;
 
 use Illuminate\Console\Command;
 

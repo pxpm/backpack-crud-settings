@@ -26,12 +26,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Pxpm\\BpSettings\\": "src"
+            "Pxpm\\BpSettings\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Pxpm\\BpSettings\\": "tests"
+            "Pxpm\\BpSettings\\": "tests/"
         }
     },
     "extra": {

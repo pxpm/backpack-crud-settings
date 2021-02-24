@@ -1,6 +1,6 @@
 <?php
 
-namespace Pxpm\BpSettings\App\Models;
+namespace Pxpm\BpSettings\app\models;
 
 use Illuminate\Database\Eloquent\Model;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
