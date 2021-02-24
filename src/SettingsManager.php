@@ -2,7 +2,7 @@
 
 namespace Pxpm\BpSettings;
 
-use Pxpm\BpSettings\App\Models\BpSettings;
+use Pxpm\BpSettings\app\models\BpSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Arr;

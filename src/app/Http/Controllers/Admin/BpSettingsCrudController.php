@@ -10,7 +10,7 @@ class BpSettingsCrudController extends CrudController
 {
 
     public function setup() {
-        $this->crud->setModel('Pxpm\BpSettings\App\Models\BpSettings');
+        $this->crud->setModel('Pxpm\BpSettings\app\models\BpSettings');
         $this->crud->setEntityNameStrings(trans('bpsettings::bpsettings.setting'), trans('bpsettings::bpsettings.settings'));
     }
 
